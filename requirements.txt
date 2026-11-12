@@ -1,0 +1,5 @@
+pandas
+uvicorn
+scikit-learn
+imbalanced-learn
+joblib
