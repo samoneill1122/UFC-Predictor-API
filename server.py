@@ -14,8 +14,8 @@ fighters_accum_stats = joblib.load("./fighters_data/fighters_accum_stats.joblib"
 app = FastAPI()
 
 def verify_api_key(x_api_key: str = Header(...)):
-    print(hashlib.sha256(x_api_key.encode("utf-8")).hexdigest())
-    print(os.environ["UFC_PREDICTOR_API_KEY"])
+    # print(hashlib.sha256(x_api_key.encode("utf-8")).hexdigest())
+    # print(os.environ["UFC_PREDICTOR_API_KEY"])
     if hashlib.sha256(x_api_key.encode("utf-8")).hexdigest() != os.environ["UFC_PREDICTOR_API_KEY"]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,6 +29,10 @@ class PredictRequest(BaseModel):
 
 class PredictCardRequest(BaseModel):
     all_card_fight_details: list
+
+@app.get("/")
+async def home():
+    return "Hello World"
 
 @app.post("/predict-fight", dependencies=[Depends(verify_api_key)])
 async def predict(data: PredictRequest):
@@ -106,11 +110,12 @@ def order_pred_input_df(df):
 def predict_fight(fighter_names):
     df_input = create_prediction_input(fighter_names)
     df_input = order_pred_input_df(df_input)
-    fight_pred = model.predict(df_input)
-    if (fight_pred[0] == 0):
-        return fighter_names[0]
+    # fight_pred = model.predict(df_input)
+    confidence_score = model.predict_proba(df_input)
+    if (confidence_score[0][0] > confidence_score[0][1]):
+        return [fighter_names[0], confidence_score[0][0]]
     else:
-        return fighter_names[1]
+        return [fighter_names[1], confidence_score[0][1]]
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
